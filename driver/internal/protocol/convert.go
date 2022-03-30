@@ -178,6 +178,20 @@ func convertFloat(ft fieldType, v interface{}, max float64) (interface{}, error)
 			return nil, nil
 		}
 		return convertFloat(ft, rv.Elem().Interface(), max)
+
+	case reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64,
+		reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64:
+
+		return float64(v.(int)), nil
+
 	}
 	// last resort (try via string)
 	if rv.Type().ConvertibleTo(stringReflectType) {
@@ -193,6 +207,23 @@ func convertTime(ft fieldType, v interface{}) (interface{}, error) {
 
 	if v, ok := v.(time.Time); ok {
 		return v, nil
+	}
+
+	if strValue, ok := v.(string); ok {
+		formats := []string{
+			"2006-01-02T15:04:05-0700",
+			"2006-01-02T15:04:05.000Z",
+			"2006-01-02T15:04:05",
+			"2006-01-02 15:04:05",
+			"2006-01-02",
+			"15:04:05",
+		}
+		for _, format := range formats {
+			dateValue, err := time.Parse(format, strValue)
+			if err == nil {
+				return dateValue, nil
+			}
+		}
 	}
 
 	rv := reflect.ValueOf(v)

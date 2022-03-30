@@ -343,7 +343,13 @@ func (c *Connector) setDSN(dsn string) error {
 				}
 				c.tlsConfig.RootCAs = certPool
 			}
+		case caDefaultSchema:
+			if v[0] != "" {
+				c.defaultSchema = v[0]
+			}
+
 		}
+
 	}
 	return nil
 }
