@@ -300,6 +300,8 @@ func convertLob(s *Session, ft fieldType, v interface{}, isCharBased bool) (driv
 		rd = v
 	case ReadProvider:
 		rd = v.Reader()
+	case string:
+		rd = bytes.NewReader([]byte(v))
 	case []byte:
 		rd = bytes.NewReader(v)
 	default:
