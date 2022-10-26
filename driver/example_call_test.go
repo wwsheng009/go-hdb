@@ -11,8 +11,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 /*
@@ -28,11 +26,7 @@ begin
 end
 `
 
-	connector, err := NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
+	db := sql.OpenDB(DefaultTestConnector())
 	defer db.Close()
 
 	procedure := RandomIdentifier("procOut_")
@@ -74,10 +68,9 @@ begin
 end
 `
 
-	connector, err := NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
+	connector := NewTestConnector()
+	// *Switch to legacy mode.
+	connector.SetLegacy(true)
 	db := sql.OpenDB(connector)
 	defer db.Close()
 
@@ -152,10 +145,7 @@ begin
   drop table #test;
 end
 `
-	connector, err := NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
+	connector := NewTestConnector()
 	// *Switch to non-legacy mode.
 	connector.SetLegacy(false)
 	db := sql.OpenDB(connector)

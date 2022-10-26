@@ -1,9 +1,96 @@
 Release Notes
 =============
 
-## Release 0.105
+## Release 0.109
 
-#### Minor revisions
+Release 0.109.2 (upgrade urgency: high)
+
+- Fixed bulk function execute issue
+
+Release 0.109.1 (upgrade urgency: no need for upgrade)
+
+- Some minor source code cleanups
+
+#### Release Notes
+
+- Moved prometheus collector from ./driver/prometheus to ./prometheus (incompatible change)
+- Removed deprecated /driver/hdb package
+- Dropped support of Go language versions < Go 1.18
+- Added bulk function execute (experimental - please see Example_fctInsert())
+- Upgraded dependencies (see go.mod)
+
+## Release 0.108
+
+Release 0.108.3 (upgrade urgency: low)
+
+- Error handling improvement (https://github.com/SAP/go-hdb/pull/95)
+- Some minor source code cleanups
+
+Release 0.108.2 (upgrade urgency: high)
+
+- Fixed hdb version parsing error using HANA v1
+- Fixed some comments and error message texts
+- Enhanced makefile to install further go versions
+
+Release 0.108.1 (upgrade urgency: medium)
+
+- Fixed driver.Decimal conversion overflow error
+
+#### Release Notes
+
+- Added prometheus collectors for driver and extended database statistics
+- Added driver.DB for support of extended database statistics
+
+## Release 0.107
+
+Release 0.107.4 (upgrade urgency: medium)
+
+- Fixed authentication issue session cookie (https://github.com/SAP/go-hdb/pull/93)
+- Fixed connection error handling in case of invalid queries
+- Incompatible change of time stats
+- Updated: github.com/prometheus/client_golang to v1.13.0
+- Source code cleanups
+
+Release 0.107.3 (upgrade urgency: low)
+
+- Changed stats configuration
+- Added metrics
+- Source code cleanups
+
+Release 0.107.2 (upgrade urgency: low)
+
+- Fixed stats for commit
+- Changed stats configuration attributes
+
+Release 0.107.1 (upgrade urgency: low)
+
+- Added support of Go 1.9
+- Dropped support of Go language versions < Go 1.7
+- Added Prometheus collectors (experimental)
+
+#### Release Notes
+
+- Added X509 and JWT authentication
+
+#### Incompatibilities
+
+- Some minor connector incompatibilities most users should not be affected of
+
+## Release 0.106
+
+Release 0.106.1 (upgrade urgency: low)
+
+- Fixed README.md for HANA cloud connection
+
+#### Release Notes
+
+- The 'legacy mode' now defaults to false
+
+#### Incompatibilities
+
+- Please see Main Features (second point) of Release 0.99
+
+## Release 0.105
 
 Release 0.105.8 (upgrade urgency: low)
 
@@ -35,7 +122,7 @@ Release 0.105.3 (upgrade urgency: low)
 
 Release 0.105.2 (upgrade urgency: low)
 
-- Added 'raw' connection methods DatabaseName and DBConnectInfo.
+- Added 'raw' connection methods DatabaseName and DBConnectInfo
 
 Release 0.105.1 (upgrade urgency: low)
 
@@ -55,8 +142,6 @@ Release 0.105.1 (upgrade urgency: low)
 
 ## Release 0.104
 
-#### Minor revisions
-
 Release 0.104.1 (upgrade urgency: high)
 
 - Fixed runtime error raised by missing error check executing sql exec statements
@@ -74,8 +159,6 @@ Release 0.104.1 (upgrade urgency: high)
   - clob to nclob
 
 ## Release 0.103
-
-#### Minor revisions
 
 Release 0.103.3 (upgrade urgency: medium)
 
@@ -104,8 +187,6 @@ Release 0.103.1 (upgrade urgency: low)
 - no known incompatibilities
 
 ## Release 0.102
-
-#### Minor revisions
 
 Release 0.102.7 (upgrade urgency: high)
 
@@ -157,8 +238,6 @@ Release 0.102.1 (upgrade urgency: low)
 
 ## Release 0.101
 
-#### Minor revisions
-
 Release 0.101.2
 
 - Added multi platform build to Github workflow
@@ -173,8 +252,6 @@ Release 0.101.1
 - Dropped support of HANA server versions < 2.00.042
 
 ## Release 0.100
-
-#### Minor revisions
 
 Release 0.100.14
 
@@ -231,8 +308,6 @@ PBKDF2 authentification is now used as default. Standard user / password authent
 
 
 ## Release 0.99
-
-#### Minor revisions
 
 Release 0.99.1
 - Additional conversions for query parameters

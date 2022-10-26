@@ -11,18 +11,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
-// TODO
-// ExampleQuery: tbd
+// TODO complete for named parameters
 func Example_query() {
-	connector, err := NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
+	db := sql.OpenDB(DefaultTestConnector())
 	defer db.Close()
 
 	table := RandomIdentifier("testNamedArg_")

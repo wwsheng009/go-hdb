@@ -10,20 +10,14 @@ package driver_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 
 	"github.com/SAP/go-hdb/driver"
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 // ExampleConn-HDBVersion shows how to retrieve hdb server info with the help of sql.Conn.Raw().
 func ExampleConn_HDBVersion() {
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
+	db := sql.OpenDB(driver.DefaultTestConnector())
 	defer db.Close()
 
 	// Grab connection.
@@ -31,26 +25,19 @@ func ExampleConn_HDBVersion() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer conn.Close()
 
-	conn.Raw(func(driverConn interface{}) error {
+	conn.Raw(func(driverConn any) error {
 		// Access driver.Conn methods.
 		log.Printf("hdb version: %s", driverConn.(driver.Conn).HDBVersion())
 		return nil
 	})
-
-	// Make sure that the example is executed during test runs.
-	fmt.Print("ok")
-
-	// output: ok
+	// output:
 }
 
 // ExampleConn-DBConnectInfo shows how to retrieve hdb DBConnectInfo with the help of sql.Conn.Raw().
 func ExampleConn_DBConnectInfo() {
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		log.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
+	db := sql.OpenDB(driver.DefaultTestConnector())
 	defer db.Close()
 
 	// Grab connection.
@@ -58,8 +45,9 @@ func ExampleConn_DBConnectInfo() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer conn.Close()
 
-	if err := conn.Raw(func(driverConn interface{}) error {
+	if err := conn.Raw(func(driverConn any) error {
 		// Access driver.Conn methods.
 		ci, err := driverConn.(driver.Conn).DBConnectInfo(context.Background(), driverConn.(driver.Conn).DatabaseName())
 		if err != nil {
@@ -70,9 +58,5 @@ func ExampleConn_DBConnectInfo() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-
-	// Make sure that the example is executed during test runs.
-	fmt.Print("ok")
-
-	// output: ok
+	// output:
 }

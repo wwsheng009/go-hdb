@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/SAP/go-hdb/driver"
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 // TestBulkFrame
@@ -336,17 +335,12 @@ func TestBulk(t *testing.T) {
 		{"testBulkGeo", testBulkGeo},
 	}
 
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		t.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
-	defer db.Close()
-
+	db := driver.DefaultTestDB()
 	conn, err := db.Conn(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer conn.Close()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.fct(conn, t) // run bulk tests on conn

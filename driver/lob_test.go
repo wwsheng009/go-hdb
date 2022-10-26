@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/SAP/go-hdb/driver"
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 func testLobInsert(db *sql.DB, t *testing.T) {
@@ -36,7 +35,7 @@ func testLobInsert(db *sql.DB, t *testing.T) {
 	}
 	defer stmt.Close()
 
-	// TODO
+	// TODO finalize
 
 }
 
@@ -177,6 +176,7 @@ func testLobDelayedScan(db *sql.DB, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer conn.Close()
 
 	row := conn.QueryRowContext(ctx, fmt.Sprintf("select * from %s", table))
 
@@ -208,13 +208,7 @@ func TestLob(t *testing.T) {
 		{"delayedScan", testLobDelayedScan},
 	}
 
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		t.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
-	defer db.Close()
-
+	db := driver.DefaultTestDB()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.fct(db, t)

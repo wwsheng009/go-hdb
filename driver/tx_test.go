@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/SAP/go-hdb/driver"
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 func testTransactionCommit(db *sql.DB, t *testing.T) {
@@ -124,13 +123,7 @@ func TestTransaction(t *testing.T) {
 		{"transactionRollback", testTransactionRollback},
 	}
 
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		t.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
-	defer db.Close()
-
+	db := driver.DefaultTestDB()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.fct(db, t)

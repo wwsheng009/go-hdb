@@ -4,13 +4,18 @@
 
 # builds and tests project via go tools
 all:
+	@echo "update dependencies"
+	go get -u ./...
+	go mod tidy
 	@echo "build and test"
 	go build -v ./...
 	go vet ./...
 	golint -set_exit_status=true ./...
-#   does currently not work with go1.18
-#	staticcheck -checks all -fail none ./...
+	staticcheck -checks all -fail none ./...
+	@echo execute tests on latest go version	
 	go test ./...
+	@echo execute tests on older supported go versions
+	go1.18.7 test ./...
 	@echo "reuse (license) check"
 	reuse lint
 
@@ -21,8 +26,13 @@ tools:
 	go install golang.org/x/lint/golint@latest
 #install staticcheck
 	@echo "install latest staticcheck version"
-	go install honnef.co/go/tools/cmd/staticcheck@latest	
-	
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+
+#install additional go versions
+go:
+	go install golang.org/dl/go1.18.7@latest
+	go1.18.7 download
+
 #install fsfe reuse tool (https://git.fsfe.org/reuse/tool)
 # pre-conditions:
 # - Python 3.6+

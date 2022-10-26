@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	"github.com/SAP/go-hdb/driver"
-	"github.com/SAP/go-hdb/driver/drivertest"
 )
 
 func testCallEcho(db *sql.DB, t *testing.T) {
@@ -52,7 +51,7 @@ end
 		fct  func(db *sql.DB, proc driver.Identifier, t *testing.T)
 	}{
 		{"QueryRow", testQueryRow},
-		// {"Query", testQuery}, // TODO
+		// {"Query", testQuery}, // TODO: 'call' query
 		// {"Exec", testExec},   // TODO: output parameter
 	}
 
@@ -134,10 +133,10 @@ end
 	stringType := reflect.TypeOf((*string)(nil)).Elem()
 	rowsType := reflect.TypeOf((*sql.Rows)(nil)).Elem()
 
-	createObj := func(t reflect.Type) interface{} { return reflect.New(t).Interface() }
+	createObj := func(t reflect.Type) any { return reflect.New(t).Interface() }
 
-	createString := func() interface{} { return createObj(stringType) }
-	createRows := func() interface{} { return createObj(rowsType) }
+	createString := func() any { return createObj(stringType) }
+	createRows := func() any { return createObj(rowsType) }
 
 	testCheck := func(testSet int, rows *sql.Rows, t *testing.T) {
 		j := 0
@@ -164,7 +163,7 @@ end
 		}
 	}
 
-	testCall := func(db *sql.DB, proc driver.Identifier, legacy bool, targets []interface{}, t *testing.T) {
+	testCall := func(db *sql.DB, proc driver.Identifier, legacy bool, targets []any, t *testing.T) {
 		rows, err := db.Query(fmt.Sprintf("call %s(?, ?, ?, ?)", proc), 1)
 		if err != nil {
 			t.Fatal(err)
@@ -205,23 +204,19 @@ end
 		t.Fatal(err)
 	}
 
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tests := []struct {
 		name    string
 		legacy  bool
-		fct     func(db *sql.DB, proc driver.Identifier, legacy bool, targets []interface{}, t *testing.T)
-		targets []interface{}
+		fct     func(db *sql.DB, proc driver.Identifier, legacy bool, targets []any, t *testing.T)
+		targets []any
 	}{
-		{"tableOutRef", true, testCall, []interface{}{createString(), createString(), createString()}},
-		{"tableOutRows", false, testCall, []interface{}{createRows(), createRows(), createRows()}},
+		{"tableOutRef", true, testCall, []any{createString(), createString(), createString()}},
+		{"tableOutRows", false, testCall, []any{createRows(), createRows(), createRows()}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			connector := driver.NewTestConnector()
 			connector.SetLegacy(test.legacy)
 			db := sql.OpenDB(connector)
 			defer db.Close()
@@ -384,11 +379,7 @@ func TestCall(t *testing.T) {
 		{"noOut", testCallNoOut},
 	}
 
-	connector, err := driver.NewConnector(drivertest.DefaultAttrs())
-	if err != nil {
-		t.Fatal(err)
-	}
-	db := sql.OpenDB(connector)
+	db := sql.OpenDB(driver.NewTestConnector())
 	defer db.Close()
 
 	for _, test := range tests {

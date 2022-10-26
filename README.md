@@ -34,13 +34,13 @@ The certificate (DigiCertGlobalRootCA.crt.pem) can be downloaded in 'pem-format'
 Assuming the HANA cloud 'endpoint' is "something.hanacloud.ondemand.com:443". Then the dsn should look as follows:
 
 ```
-"hdb://<USER>:<PASSWORD>@something.hanacloud.ondemand.com:443?TLSServerName=something.hanacloud.ondemand&TLSRootCAFile=<PATH TO CERTIFICATE>/DigiCertGlobalRootCA.crt.pem"
+"hdb://<USER>:<PASSWORD>@something.hanacloud.ondemand.com:443?TLSServerName=something.hanacloud.ondemand.com&TLSRootCAFile=<PATH TO CERTIFICATE>/DigiCertGlobalRootCA.crt.pem"
 ```
 
 or
 
 ```
-"hdb://<USER>:<PASSWORD>@something.hanacloud.ondemand.com:443?TLSServerName=something.hanacloud.ondemand"
+"hdb://<USER>:<PASSWORD>@something.hanacloud.ondemand.com:443?TLSServerName=something.hanacloud.ondemand.com"
 ```
 
 with:
@@ -54,15 +54,7 @@ When omitting the TLSRootCAFile, TLS uses the host's root CA set (for more infor
 
 To run the driver integration tests a HANA Database server is required. The test user must have privileges to create database schemas.
 
-Provide dsn via parameter:
-
-```
-go test -dsn hdb://user:password@host:port
-```
-
-or
-
-set environment variable GOHDBDSN:
+Set environment variable GOHDBDSN:
 
 ```
 #linux example
@@ -90,6 +82,8 @@ go test --tags unit
 * Support of little-endian (e.g. amd64) and big-endian architectures (e.g. s390x).
 * Support of [driver connector](https://golang.org/pkg/database/sql/driver/#Connector).
 * Support of [PBKDF2](https://tools.ietf.org/html/rfc2898) authentication as default and standard user / password as fallback.
+* Support of client certificate (X509) and JWT (JSON Web Token) authentication.
+* [Prometheus](https://prometheus.io) collectors for driver and extended database statistics.
 
 ## Dependencies
 

@@ -8,25 +8,24 @@ jobs:
     
     steps:
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Setup go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
-        go-version: '1.18'
+        go-version: '1.19'
     
     - run: |
         go install golang.org/x/lint/golint@latest
         golint ./...
 
   build-linux:
-    #qemu does not work correctly in ubuntu-18.04
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         goos: [linux]
         goarch: [amd64, arm, arm64, s390x]
-        go: [ '1.18', '1.17', '1.16' ]
+        go: ['1.19', '1.18']
       fail-fast: false  
     
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -43,10 +42,10 @@ jobs:
         sudo apt-get update
         sudo apt-get -y install qemu-user
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Setup go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
     
@@ -70,17 +69,17 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: [ '1.18', '1.17', '1.16' ]
+        go: ['1.19', '1.18']
       fail-fast: false  
     
     name: Go ${{ matrix.go }} macOS
     
     steps:
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Setup go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
     
@@ -104,17 +103,17 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: [ '1.18', '1.17', '1.16' ]
+        go: ['1.19', '1.18']
       fail-fast: false  
     
     name: Go ${{ matrix.go }} Windows
     
     steps:
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Setup go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
     
