@@ -1,6 +1,42 @@
 Release Notes
 =============
 
+## Release 0.111
+
+Release 0.111.7 (upgrade urgency: no need for upgrade)
+
+- Changed version 1.0 migration description
+
+Release 0.111.6 (upgrade urgency: medium)
+
+- Fixed issue in reporting wrong number of affected rows using LOBs (https://github.com/SAP/go-hdb/pull/100)
+
+Release 0.111.5 (upgrade urgency: no need for upgrade)
+
+- Upgraded dependencies (see go.mod)
+
+Release 0.111.4 (upgrade urgency: high)
+
+- Fixed protocol read timeout for "optimized" hana backend build
+
+Release 0.111.3 (upgrade urgency: no need for upgrade)
+
+- Version 1.0 announcement
+
+Release 0.111.2 (upgrade urgency: no need for upgrade)
+
+- Some source code cleanups
+
+Release 0.111.1 (upgrade urgency: low)
+
+- Some minor fixes and source code cleanups
+
+#### Release Notes
+
+- X509 authentication: check validity period of client certificates before connecting to database (incompatible change)
+
+  added additional error return parameter to NewX509AuthConnector because of early X509 certificate and key validation
+
 ## Release 0.110
 
 Release 0.110.1 (upgrade urgency: no need for upgrade)
@@ -20,7 +56,7 @@ Release 0.110.1 (upgrade urgency: no need for upgrade)
   
   As to the restrictions and redundancy comming with some of the options the first three are going to be set to deprecated
   and the latter two (extended arguments and function argument) are kept going forward. Until go-hdb release V1.0 would
-  be available the deprecated options can be used further by switching on 'legacy mode' on connector level.
+  be available the deprecated options can be used further by switching on connector 'legacy mode'.
     
 ## Release 0.109
 
