@@ -77,8 +77,6 @@ const (
 	// special null values
 	tcSecondtimeNull typeCode = 0xB0
 
-	// TcTableRef is the TypeCode for table references.
-	TcTableRef typeCode = 0x7e // 126
 	// TcTableRows is the TypeCode for table rows.
 	TcTableRows typeCode = 0x7f // 127
 )
@@ -159,7 +157,7 @@ func (tc typeCode) dataType() DataType {
 		return DtTime
 	case tcDecimal, tcFixed8, tcFixed12, tcFixed16:
 		return DtDecimal
-	case tcChar, tcVarchar, tcString, tcAlphanum, tcNchar, tcNvarchar, tcNstring, tcShorttext, tcStPoint, tcStGeometry, TcTableRef:
+	case tcChar, tcVarchar, tcString, tcAlphanum, tcNchar, tcNvarchar, tcNstring, tcShorttext, tcStPoint, tcStGeometry:
 		return DtString
 	case tcBinary, tcVarbinary:
 		return DtBytes
@@ -176,85 +174,4 @@ func (tc typeCode) dataType() DataType {
 // see https://golang.org/pkg/database/sql/driver/#RowsColumnTypeDatabaseTypeName
 func (tc typeCode) typeName() string {
 	return strings.ToUpper(tc.String()[2:])
-}
-
-func (tc typeCode) fieldType(length, fraction int) fieldType {
-	// performance: use switch instead of map
-	switch tc {
-	case tcBoolean:
-		return booleanType
-	case tcTinyint:
-		return tinyintType
-	case tcSmallint:
-		return smallintType
-	case tcInteger:
-		return integerType
-	case tcBigint:
-		return bigintType
-	case tcReal:
-		return realType
-	case tcDouble:
-		return doubleType
-	case tcDate:
-		return dateType
-	case tcTime:
-		return timeType
-	case tcTimestamp:
-		return timestampType
-	case tcLongdate:
-		return longdateType
-	case tcSeconddate:
-		return seconddateType
-	case tcDaydate:
-		return daydateType
-	case tcSecondtime:
-		return secondtimeType
-	case tcDecimal:
-		return decimalType
-	case tcChar, tcVarchar, tcString:
-		return varType
-	case tcAlphanum:
-		return alphaType
-	case tcNchar, tcNvarchar, tcNstring, tcShorttext:
-		return cesu8Type
-	case tcBinary, tcVarbinary:
-		return varType
-	case tcStPoint, tcStGeometry:
-		return hexType
-	case tcBlob, tcClob, tcLocator:
-		return lobVarType
-	case tcNclob, tcText, tcNlocator:
-		return lobCESU8Type
-	case tcBintext: // ?? lobCESU8Type
-		return lobVarType
-	case tcFixed8:
-		return _fixed8Type{prec: length, scale: fraction} // used for decimals(x,y) 2^63 - 1 (int64)
-	case tcFixed12:
-		return _fixed12Type{prec: length, scale: fraction} // used for decimals(x,y) 2^96 - 1 (int96)
-	case tcFixed16:
-		return _fixed16Type{prec: length, scale: fraction} // used for decimals(x,y) 2^63 - 1 (int128)
-	default:
-		panic(fmt.Sprintf("missing fieldType for typeCode %s", tc))
-	}
-}
-
-func (tc typeCode) optType() optType {
-	switch tc {
-	case tcBoolean:
-		return optBooleanType
-	case tcTinyint:
-		return optTinyintType
-	case tcInteger:
-		return optIntegerType
-	case tcBigint:
-		return optBigintType
-	case tcDouble:
-		return optDoubleType
-	case tcString:
-		return optStringType
-	case tcBstring:
-		return optBstringType
-	default:
-		panic(fmt.Sprintf("missing optType for typeCode %s", tc))
-	}
 }

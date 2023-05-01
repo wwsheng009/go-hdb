@@ -77,7 +77,7 @@ var _ LobDecoderSetter = (*LobOutDescr)(nil)
 // LobInDescr represents a lob input descriptor.
 type LobInDescr struct {
 	rd    io.Reader
-	opt   LobOptions
+	Opt   LobOptions
 	_size int
 	pos   int
 	b     []byte
@@ -93,11 +93,11 @@ func (d *LobInDescr) String() string {
 	if len(b) >= 25 {
 		b = d.b[:25]
 	}
-	return fmt.Sprintf("options %s size %d pos %d bytes %v", d.opt, d._size, d.pos, b)
+	return fmt.Sprintf("options %s size %d pos %d bytes %v", d.Opt, d._size, d.pos, b)
 }
 
 // FetchNext fetches the next lob chunk.
-func (d *LobInDescr) FetchNext(chunkSize int) (bool, error) {
+func (d *LobInDescr) FetchNext(chunkSize int) error {
 	if cap(d.b) < chunkSize {
 		d.b = make([]byte, chunkSize)
 	}
@@ -112,12 +112,12 @@ func (d *LobInDescr) FetchNext(chunkSize int) (bool, error) {
 	d._size, err = io.ReadFull(d.rd, d.b)
 	d.b = d.b[:d._size]
 
-	d.opt = loDataincluded
+	d.Opt = loDataincluded
 	if err != io.EOF && err != io.ErrUnexpectedEOF {
-		return false, err
+		return err
 	}
-	d.opt |= loLastdata
-	return true, nil
+	d.Opt |= loLastdata
+	return nil
 }
 
 func (d *LobInDescr) setPos(pos int) { d.pos = pos }
@@ -180,10 +180,10 @@ func (d WriteLobDescr) String() string {
 
 // FetchNext fetches the next lob chunk.
 func (d *WriteLobDescr) FetchNext(chunkSize int) error {
-	if _, err := d.LobInDescr.FetchNext(chunkSize); err != nil {
+	if err := d.LobInDescr.FetchNext(chunkSize); err != nil {
 		return err
 	}
-	d.Opt = d.LobInDescr.opt
+	d.Opt = d.LobInDescr.Opt
 	d.ofs = -1 //offset (-1 := append)
 	d.b = d.LobInDescr.b
 	return nil
@@ -258,19 +258,10 @@ type WriteLobReply struct {
 
 func (r *WriteLobReply) String() string { return fmt.Sprintf("ids %v", r.IDs) }
 
-func (r *WriteLobReply) reset(numArg int) {
-	if r.IDs == nil || cap(r.IDs) < numArg {
-		r.IDs = make([]LocatorID, numArg)
-	} else {
-		r.IDs = r.IDs[:numArg]
-	}
-}
-
 func (r *WriteLobReply) decode(dec *encoding.Decoder, ph *PartHeader) error {
-	numArg := ph.numArg()
-	r.reset(numArg)
+	r.IDs = resizeSlice(r.IDs, ph.numArg())
 
-	for i := 0; i < numArg; i++ {
+	for i := 0; i < ph.numArg(); i++ {
 		r.IDs[i] = LocatorID(dec.Uint64())
 	}
 	return dec.Error()

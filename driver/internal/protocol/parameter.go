@@ -77,11 +77,6 @@ type ParameterField struct {
 	mode             ParameterMode
 }
 
-// NewTableRefParameterField returns a ParameterField representing a table reference.
-func NewTableRefParameterField(idx int) *ParameterField {
-	return &ParameterField{ofs: idx, tc: TcTableRef, mode: PmOut}
-}
-
 // NewTableRowsParameterField returns a ParameterField representing table rows.
 func NewTableRowsParameterField(idx int) *ParameterField {
 	return &ParameterField{ofs: idx, tc: TcTableRows, mode: PmOut}
@@ -89,7 +84,7 @@ func NewTableRowsParameterField(idx int) *ParameterField {
 
 func (f *ParameterField) fieldName() string {
 	switch f.tc {
-	case TcTableRef, TcTableRows:
+	case TcTableRows:
 		return fmt.Sprintf("table %d", f.ofs)
 	default:
 		return f.names.name(uint32(f.ofs))
@@ -128,7 +123,7 @@ func (f *ParameterField) TypeName() string { return f.tc.typeName() }
 
 // ScanType returns the scan type of the field.
 // see https://golang.org/pkg/database/sql/driver/#RowsColumnTypeScanType
-func (f *ParameterField) ScanType() reflect.Type { return f.tc.dataType().ScanType() }
+func (f *ParameterField) ScanType() reflect.Type { return f.tc.dataType().ScanType(f.Nullable()) }
 
 // TypeLength returns the type length of the field.
 // see https://golang.org/pkg/database/sql/driver/#RowsColumnTypeLength
@@ -164,7 +159,7 @@ func (f *ParameterField) InOut() bool { return f.mode == pmInout }
 // Name returns the parameter field name.
 func (f *ParameterField) Name() string { return f.fieldName() }
 
-func (f *ParameterField) decode(dec *encoding.Decoder) {
+func (f *ParameterField) decode(dec *encoding.Decoder, ftc *FieldTypeCtx) {
 	f.parameterOptions = parameterOptions(dec.Int8())
 	f.tc = typeCode(dec.Int8())
 	f.mode = ParameterMode(dec.Int8())
@@ -176,7 +171,7 @@ func (f *ParameterField) decode(dec *encoding.Decoder) {
 
 	f.names.insert(uint32(f.ofs))
 
-	f.ft = f.tc.fieldType(int(f.length), int(f.fraction))
+	f.ft = ftc.fieldType(f.tc, int(f.length), int(f.fraction))
 }
 
 func (f *ParameterField) prmSize(v any) int {
@@ -215,6 +210,7 @@ func (f *ParameterField) decodePrm(dec *encoding.Decoder) (any, error) {
 
 // ParameterMetadata represents the metadata of a parameter.
 type ParameterMetadata struct {
+	FieldTypeCtx    *FieldTypeCtx
 	ParameterFields []*ParameterField
 }
 
@@ -227,7 +223,7 @@ func (m *ParameterMetadata) decode(dec *encoding.Decoder, ph *PartHeader) error 
 	names := &fieldNames{}
 	for i := 0; i < len(m.ParameterFields); i++ {
 		f := &ParameterField{names: names}
-		f.decode(dec)
+		f.decode(dec, m.FieldTypeCtx)
 		m.ParameterFields[i] = f
 	}
 	names.decode(dec)
@@ -238,12 +234,11 @@ func (m *ParameterMetadata) decode(dec *encoding.Decoder, ph *PartHeader) error 
 type InputParameters struct {
 	InputFields []*ParameterField
 	nvargs      []driver.NamedValue
-	hasLob      bool
 }
 
 // NewInputParameters returns a InputParameters instance.
-func NewInputParameters(inputFields []*ParameterField, nvargs []driver.NamedValue, hasLob bool) (*InputParameters, error) {
-	return &InputParameters{InputFields: inputFields, nvargs: nvargs, hasLob: hasLob}, nil
+func NewInputParameters(inputFields []*ParameterField, nvargs []driver.NamedValue) (*InputParameters, error) {
+	return &InputParameters{InputFields: inputFields, nvargs: nvargs}, nil
 }
 
 func (p *InputParameters) String() string {
@@ -261,13 +256,18 @@ func (p *InputParameters) size() int {
 
 		size += numColumns
 
+		hasInLob := false
+
 		for j := 0; j < numColumns; j++ {
 			f := p.InputFields[j]
 			size += f.prmSize(p.nvargs[i*numColumns+j].Value)
+			if f.IsLob() && f.In() {
+				hasInLob = true
+			}
 		}
 
 		// lob input parameter: set offset position of lob data
-		if p.hasLob {
+		if hasInLob {
 			for j := 0; j < numColumns; j++ {
 				if lobInDescr, ok := p.nvargs[i*numColumns+j].Value.(*LobInDescr); ok {
 					lobInDescr.setPos(size)
@@ -300,15 +300,21 @@ func (p *InputParameters) encode(enc *encoding.Encoder) error {
 	}
 
 	for i := 0; i < len(p.nvargs)/numColumns; i++ { // row-by-row
+
+		hasInLob := false
+
 		for j := 0; j < numColumns; j++ {
 			//mass insert
 			f := p.InputFields[j]
 			if err := f.encodePrm(enc, p.nvargs[i*numColumns+j].Value); err != nil {
 				return err
 			}
+			if f.IsLob() && f.In() {
+				hasInLob = true
+			}
 		}
 		// lob input parameter: write first data chunk
-		if p.hasLob {
+		if hasInLob {
 			for j := 0; j < numColumns; j++ {
 				if lobInDescr, ok := p.nvargs[i*numColumns+j].Value.(*LobInDescr); ok {
 					lobInDescr.writeFirst(enc)

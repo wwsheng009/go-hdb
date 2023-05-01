@@ -1,23 +1,26 @@
 name: build
 on: [push]
 jobs:
-
-  lint:
+  vetlint:
     runs-on: ubuntu-latest
-    name: Go lint
-    
+    name: Go vet lint
+
     steps:
-    
-    - uses: actions/checkout@v3
-    
-    - name: Setup go
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.19'
-    
-    - run: |
-        go install golang.org/x/lint/golint@latest
-        golint ./...
+      - uses: actions/checkout@v3
+
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.20"
+
+      - name: Vet
+        run: |
+          go vet ./...
+
+      - name: Lint
+        run: |
+          go install golang.org/x/lint/golint@latest
+          golint ./...
 
   build-linux:
     runs-on: ubuntu-latest
@@ -25,110 +28,95 @@ jobs:
       matrix:
         goos: [linux]
         goarch: [amd64, arm, arm64, s390x]
-        go: ['1.19', '1.18']
-      fail-fast: false  
-    
+        go: ["1.20", "1.19"]
+      fail-fast: false
+
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
-    
+
     env:
       GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       GOARM: 6
 
     steps:
-    
-    - name: Install qemu-user
-      run: |
-        sudo apt-get update
-        sudo apt-get -y install qemu-user
+      - name: Install qemu-user
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install qemu-user
 
-    - uses: actions/checkout@v3
-    
-    - name: Setup go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go }}
-    
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        
-    - name: Build
-      run: |
-        go build -v ./...
+      - uses: actions/checkout@v3
 
-    - name: Vet
-      run: |
-        go vet ./...
-        
-    - name: Test
-      run: |
-        go test -v --tags unit ./...    
-        
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+
+      - name: Build
+        run: |
+          go build -v ./...
+
+      - name: Test
+        run: |
+          go test -v --tags unit ./...
+
   build-macos:
     runs-on: macos-latest
     strategy:
       matrix:
-        go: ['1.19', '1.18']
-      fail-fast: false  
-    
-    name: Go ${{ matrix.go }} macOS
-    
-    steps:
-    
-    - uses: actions/checkout@v3
-    
-    - name: Setup go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go }}
-    
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        
-    - name: Build
-      run: |
-        go build -v ./...
+        go: ["1.20", "1.19"]
+      fail-fast: false
 
-    - name: Vet
-      run: |
-        go vet ./...
-        
-    - name: Test
-      run: |
-        go test -v --tags unit ./...    
+    name: Go ${{ matrix.go }} macOS
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+
+      - name: Build
+        run: |
+          go build -v ./...
+
+      - name: Test
+        run: |
+          go test -v --tags unit ./...
 
   build-windows:
     runs-on: windows-latest
     strategy:
       matrix:
-        go: ['1.19', '1.18']
-      fail-fast: false  
-    
-    name: Go ${{ matrix.go }} Windows
-    
-    steps:
-    
-    - uses: actions/checkout@v3
-    
-    - name: Setup go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go }}
-    
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        
-    - name: Build
-      run: |
-        go build -v ./...
+        go: ["1.20", "1.19"]
+      fail-fast: false
 
-    - name: Vet
-      run: |
-        go vet ./...
-        
-    - name: Test
-      run: |
-        go test -v --tags unit ./...    
+    name: Go ${{ matrix.go }} Windows
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+
+      - name: Build
+        run: |
+          go build -v ./...
+
+      - name: Test
+        run: |
+          go test -v --tags unit ./...

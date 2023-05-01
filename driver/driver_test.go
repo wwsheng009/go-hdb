@@ -1,5 +1,4 @@
 //go:build !unit
-// +build !unit
 
 package driver_test
 
@@ -219,6 +218,31 @@ func testQueryArgs(db *sql.DB, t *testing.T) {
 	}
 }
 
+func testComments(db *sql.DB, t *testing.T) {
+	tests := []struct {
+		query     string
+		supported bool
+	}{
+		{"select * from dummy\n-- my comment", true},
+		{"-- my comment\nselect * from dummy", true},
+		{"\n-- my comment\nselect * from dummy", true},
+	}
+
+	for _, test := range tests {
+		rows, err := db.Query(test.query)
+		if err != nil {
+			if test.supported {
+				t.Fatal(err)
+			} else {
+				t.Log(err)
+			}
+		}
+		if rows != nil {
+			rows.Close()
+		}
+	}
+}
+
 func TestDriver(t *testing.T) {
 	tests := []struct {
 		name string
@@ -233,6 +257,7 @@ func TestDriver(t *testing.T) {
 		{"rowsAffected", testRowsAffected},
 		{"upsert", testUpsert},
 		{"queryArgs", testQueryArgs},
+		{"queryComments", testComments},
 	}
 
 	db := driver.DefaultTestDB()

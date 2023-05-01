@@ -1,4 +1,5 @@
 # go-hdb
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/SAP/go-hdb/driver.svg)](https://pkg.go.dev/github.com/SAP/go-hdb/driver)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SAP/go-hdb)](https://goreportcard.com/report/github.com/SAP/go-hdb)
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP/go-hdb)](https://api.reuse.software/info/github.com/SAP/go-hdb)
@@ -7,12 +8,6 @@
 Go-hdb is a native Go (golang) HANA database driver for Go's sql package. It implements the SAP HANA SQL command network protocol.
 
 For the official SAP HANA client Go support (not this database driver) please see [SAP Help Portal](https://help.sap.com/viewer/0eec0d68141541d1b07893a39944924e/2.0.02/en-US/0ffbe86c9d9f44338441829c6bee15e6.html).
-
-## Version 1.0
-
-go-hdb version 1.0 is going to be released after Go 1.20 is available which is expected to be released in February 2023. For migration details please refer to [Version 1.0](https://github.com/SAP/go-hdb/blob/main/VERSION1.0.md).
-
-When starting newly with this driver please use the latest 1.0 release candidate branch of this repository
 
 ## Installation
 
@@ -50,6 +45,7 @@ or
 ```
 
 with:
+
 - TLSServerName same as 'host'
 - TLSRootCAFile needs to point to the location in your filesystem where the file DigiCertGlobalRootCA.crt.pem is stored
 
@@ -76,25 +72,25 @@ go test --tags unit
 
 ## Features
 
-* Native Go implementation (no C libraries, CGO).
-* Go <http://golang.org/pkg/database/sql> package compliant.
-* Support of database/sql/driver Execer and Queryer interface for parameter free statements and queries.
-* Support of 'bulk' query execution.
-* Support of UTF-8 to / from CESU-8 encodings for HANA Unicode types.
-* Built-in support of HANA decimals as Go rational numbers <http://golang.org/pkg/math/big>.
-* Support of Large Object streaming.
-* Support of Stored Procedures with table output parameters.
-* Support of TLS TCP connections.
-* Support of little-endian (e.g. amd64) and big-endian architectures (e.g. s390x).
-* Support of [driver connector](https://golang.org/pkg/database/sql/driver/#Connector).
-* Support of [PBKDF2](https://tools.ietf.org/html/rfc2898) authentication as default and standard user / password as fallback.
-* Support of client certificate (X509) and JWT (JSON Web Token) authentication.
-* [Prometheus](https://prometheus.io) collectors for driver and extended database statistics.
+- Native Go implementation (no C libraries, CGO).
+- Go <http://golang.org/pkg/database/sql> package compliant.
+- Support of database/sql/driver Execer and Queryer interface for parameter free statements and queries.
+- Support of 'bulk' query execution.
+- Support of UTF-8 to / from CESU-8 encodings for HANA Unicode types.
+- Built-in support of HANA decimals as Go rational numbers <http://golang.org/pkg/math/big>.
+- Support of Large Object streaming.
+- Support of Stored Procedures with table output parameters.
+- Support of TLS TCP connections.
+- Support of little-endian (e.g. amd64) and big-endian architectures (e.g. s390x).
+- Support of [driver connector](https://golang.org/pkg/database/sql/driver/#Connector).
+- Support of [PBKDF2](https://tools.ietf.org/html/rfc2898) authentication as default and standard user / password as fallback.
+- Support of client certificate (X509) and JWT (JSON Web Token) authentication.
+- [Prometheus](https://prometheus.io) collectors for driver and extended database statistics.
 
 ## Dependencies
 
-* Please see [go.mod](https://github.com/SAP/go-hdb/blob/main/go.mod).
+- Please see [go.mod](https://github.com/SAP/go-hdb/blob/main/go.mod).
 
 ## Licensing
 
-Copyright 2014-2022 SAP SE or an SAP affiliate company and go-hdb contributors. Please see our [LICENSE](LICENSE.md) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/go-hdb).
+Copyright 2014-2023 SAP SE or an SAP affiliate company and go-hdb contributors. Please see our [LICENSE](LICENSE.md) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/go-hdb).

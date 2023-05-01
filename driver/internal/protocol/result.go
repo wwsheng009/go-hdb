@@ -79,7 +79,7 @@ func (f *ResultField) TypeName() string { return f.tc.typeName() }
 
 // ScanType returns the scan type of the field.
 // see https://golang.org/pkg/database/sql/driver/#RowsColumnTypeScanType
-func (f *ResultField) ScanType() reflect.Type { return f.tc.dataType().ScanType() }
+func (f *ResultField) ScanType() reflect.Type { return f.tc.dataType().ScanType(f.Nullable()) }
 
 // TypeLength returns the type length of the field.
 // see https://golang.org/pkg/database/sql/driver/#RowsColumnTypeLength
@@ -106,7 +106,7 @@ func (f *ResultField) Nullable() bool { return f.columnOptions == coOptional }
 // Name returns the result field name.
 func (f *ResultField) Name() string { return f.names.name(f.columnDisplayNameOfs) }
 
-func (f *ResultField) decode(dec *encoding.Decoder) {
+func (f *ResultField) decode(dec *encoding.Decoder, ftc *FieldTypeCtx) {
 	f.columnOptions = columnOptions(dec.Int8())
 	f.tc = typeCode(dec.Int8())
 	f.fraction = dec.Int16()
@@ -122,7 +122,7 @@ func (f *ResultField) decode(dec *encoding.Decoder) {
 	f.names.insert(f.columnNameOfs)
 	f.names.insert(f.columnDisplayNameOfs)
 
-	f.ft = f.tc.fieldType(int(f.length), int(f.fraction))
+	f.ft = ftc.fieldType(f.tc, int(f.length), int(f.fraction))
 }
 
 func (f *ResultField) decodeRes(dec *encoding.Decoder) (any, error) {
@@ -131,6 +131,7 @@ func (f *ResultField) decodeRes(dec *encoding.Decoder) (any, error) {
 
 // ResultMetadata represents the metadata of a set of database result fields.
 type ResultMetadata struct {
+	FieldTypeCtx *FieldTypeCtx
 	ResultFields []*ResultField
 }
 
@@ -143,7 +144,7 @@ func (r *ResultMetadata) decode(dec *encoding.Decoder, ph *PartHeader) error {
 	names := &fieldNames{}
 	for i := 0; i < len(r.ResultFields); i++ {
 		f := &ResultField{names: names}
-		f.decode(dec)
+		f.decode(dec, r.FieldTypeCtx)
 		r.ResultFields[i] = f
 	}
 	names.decode(dec)

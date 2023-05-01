@@ -32,7 +32,10 @@ type ConvertError struct {
 }
 
 func (e *ConvertError) Error() string {
-	return fmt.Sprintf("unsupported %[1]s conversion: %[2]T %[2]v", e.ft, e.v)
+	if e.err == nil {
+		return fmt.Sprintf("unsupported %[1]s conversion: %[2]T %[2]v", e.ft, e.v)
+	}
+	return fmt.Sprintf("unsupported %[1]s conversion: %[2]T %[2]v - %[3]s", e.ft, e.v, e.err)
 }
 
 // Unwrap returns the nested error.
@@ -176,20 +179,6 @@ func convertFloat(ft fieldType, v any, max float64) (any, error) {
 			return nil, nil
 		}
 		return convertFloat(ft, rv.Elem().Interface(), max)
-
-	case reflect.Int,
-		reflect.Int8,
-		reflect.Int16,
-		reflect.Int32,
-		reflect.Int64,
-		reflect.Uint,
-		reflect.Uint8,
-		reflect.Uint16,
-		reflect.Uint32,
-		reflect.Uint64:
-
-		return float64(v.(int)), nil
-
 	}
 	// last resort (try via string)
 	if rv.Type().ConvertibleTo(stringReflectType) {
@@ -205,23 +194,6 @@ func convertTime(ft fieldType, v any) (any, error) {
 
 	if v, ok := v.(time.Time); ok {
 		return v, nil
-	}
-
-	if strValue, ok := v.(string); ok {
-		formats := []string{
-			"2006-01-02T15:04:05-0700",
-			"2006-01-02T15:04:05.000Z",
-			"2006-01-02T15:04:05",
-			"2006-01-02 15:04:05",
-			"2006-01-02",
-			"15:04:05",
-		}
-		for _, format := range formats {
-			dateValue, err := time.Parse(format, strValue)
-			if err == nil {
-				return dateValue, nil
-			}
-		}
 	}
 
 	rv := reflect.ValueOf(v)

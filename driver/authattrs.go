@@ -3,6 +3,7 @@ package driver
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	p "github.com/SAP/go-hdb/driver/internal/protocol"
 	"github.com/SAP/go-hdb/driver/internal/protocol/x509"
@@ -10,7 +11,7 @@ import (
 
 // authAttrs is holding authentication relevant attributes.
 type authAttrs struct {
-	hasCookie            atomicBool
+	hasCookie            atomic.Bool
 	mu                   sync.RWMutex
 	_username, _password string        // basic authentication
 	_certKey             *x509.CertKey // X509

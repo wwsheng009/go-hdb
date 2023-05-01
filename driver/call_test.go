@@ -1,14 +1,13 @@
 //go:build !unit
-// +build !unit
 
 package driver_test
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
-	"reflect"
 	"testing"
 
 	"github.com/SAP/go-hdb/driver"
@@ -21,20 +20,8 @@ begin
     odata := idata;
 end
 `
-
-	testQueryRow := func(db *sql.DB, proc driver.Identifier, t *testing.T) {
-		const txt = "Hello World!"
-
-		var out string
-
-		if err := db.QueryRow(fmt.Sprintf("call %s(?, ?)", proc), txt).Scan(&out); err != nil {
-			t.Fatal(err)
-		}
-
-		if out != txt {
-			t.Fatalf("value %s - expected %s", out, txt)
-		}
-	}
+	const txt = "Hello World!"
+	var out string
 
 	// create procedure
 	proc := driver.RandomIdentifier("procEcho_")
@@ -42,18 +29,44 @@ end
 		t.Fatal(err)
 	}
 
+	testExecInvNamedPrm := func() { // exec - invalid names (lower instead of upper case)
+		if _, err := db.Exec(fmt.Sprintf("call %s(?, ?)", proc), sql.Named("idata", txt), sql.Named("odata", sql.Out{Dest: &out})); err != nil {
+			t.Log(err)
+		} else {
+			t.Fatal("should return invalid argument name error")
+		}
+	}
+
+	testExec := func() { // exec
+		if _, err := db.Exec(fmt.Sprintf("call %s(?, ?)", proc), sql.Named("IDATA", txt), sql.Named("ODATA", sql.Out{Dest: &out})); err != nil {
+			t.Fatal(err)
+		}
+		if out != txt {
+			t.Fatalf("value %s - expected %s", out, txt)
+		}
+	}
+
+	testExecRndPrms := func() { // exec random parameters - switch input / output argument (test named parameters)
+		if _, err := db.Exec(fmt.Sprintf("call %s(?, ?)", proc), sql.Named("ODATA", sql.Out{Dest: &out}), sql.Named("IDATA", txt)); err != nil {
+			t.Fatal(err)
+		}
+		if out != txt {
+			t.Fatalf("value %s - expected %s", out, txt)
+		}
+	}
+
 	tests := []struct {
 		name string
-		fct  func(db *sql.DB, proc driver.Identifier, t *testing.T)
+		fct  func()
 	}{
-		{"QueryRow", testQueryRow},
-		// {"Query", testQuery}, // TODO: 'call' query
-		// {"Exec", testExec},   // TODO: output parameter
+		{"ExecInvNamedPrm", testExecInvNamedPrm},
+		{"Exec", testExec},
+		{"ExecRndPrms", testExecRndPrms},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			test.fct(db, proc, t)
+			test.fct()
 		})
 	}
 }
@@ -67,27 +80,23 @@ end
 `
 	const txt = "Hello World - 𝄞𝄞€€!"
 
-	proc := driver.RandomIdentifier("procBlobEcho_")
+	newLob := func() (*driver.Lob, *bytes.Buffer) {
+		b := new(bytes.Buffer)
+		lob := driver.NewLob(bytes.NewReader([]byte(txt)), b)
+		return lob, b
+	}
 
+	proc := driver.RandomIdentifier("procBlobEcho_")
 	if _, err := db.Exec(fmt.Sprintf(procBlobEcho, proc)); err != nil {
 		t.Fatal(err)
 	}
 
-	inlob := new(driver.Lob)
-	inlob.SetReader(bytes.NewReader([]byte(txt)))
-
-	b := new(bytes.Buffer)
-	outlob := new(driver.Lob)
-	outlob.SetWriter(b)
-
-	if err := db.QueryRow(fmt.Sprintf("call %s(?, ?)", proc), inlob).Scan(outlob); err != nil {
+	lob, b := newLob()
+	if _, err := db.Exec(fmt.Sprintf("call %s(?, ?)", proc), sql.Named("IDATA", lob), sql.Named("ODATA", sql.Out{Dest: lob})); err != nil {
 		t.Fatal(err)
 	}
-
-	out := b.String()
-
-	if out != txt {
-		t.Fatalf("value %s - expected %s", out, txt)
+	if b.String() != txt {
+		t.Fatalf("value %s - expected %s", b.String(), txt)
 	}
 }
 
@@ -117,24 +126,18 @@ begin
   drop table #test;
 end
 `
-	testData := [][]struct {
+	type testData struct {
 		i int
 		x string
-	}{
+	}
+
+	data := [][]testData{
 		{{0, "A"}, {1, "B"}, {2, "C"}, {3, "D"}, {4, "E"}},
 		{{0, "A"}, {1, "B"}, {2, "C"}, {3, "D"}, {4, "E"}, {5, "F"}, {6, "G"}, {7, "H"}, {8, "I"}, {9, "J"}},
 		{{0, "A"}, {1, "B"}, {2, "C"}, {3, "D"}, {4, "E"}, {5, "F"}, {6, "G"}, {7, "H"}, {8, "I"}, {9, "J"}, {10, "K"}, {11, "L"}, {12, "M"}, {13, "N"}, {14, "O"}},
 	}
 
-	stringType := reflect.TypeOf((*string)(nil)).Elem()
-	rowsType := reflect.TypeOf((*sql.Rows)(nil)).Elem()
-
-	createObj := func(t reflect.Type) any { return reflect.New(t).Interface() }
-
-	createString := func() any { return createObj(stringType) }
-	createRows := func() any { return createObj(rowsType) }
-
-	testCheck := func(testSet int, rows *sql.Rows, t *testing.T) {
+	check := func(data []testData, rows *sql.Rows) {
 		j := 0
 		for rows.Next() {
 
@@ -146,79 +149,63 @@ end
 			}
 
 			// log.Printf("i %d x %s", i, x)
-			if i != testData[testSet][j].i {
-				t.Fatalf("value i %d - expected %d", i, testData[testSet][j].i)
+			if i != data[j].i {
+				t.Fatalf("value i %d - expected %d", i, data[j].i)
 			}
-			if x != testData[testSet][j].x {
-				t.Fatalf("value x %s - expected %s", x, testData[testSet][j].x)
+			if x != data[j].x {
+				t.Fatalf("value x %s - expected %s", x, data[j].x)
 			}
 			j++
 		}
 		if err := rows.Err(); err != nil {
 			log.Fatal(err)
 		}
-	}
-
-	testCall := func(db *sql.DB, proc driver.Identifier, legacy bool, targets []any, t *testing.T) {
-		rows, err := db.Query(fmt.Sprintf("call %s(?, ?, ?, ?)", proc), 1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer rows.Close()
-
-		if !rows.Next() {
-			log.Fatal(rows.Err())
-		}
-
-		if err := rows.Scan(targets...); err != nil {
-			log.Fatal(err)
-		}
-
-		for i, target := range targets {
-			if legacy { // read table parameter by separate query
-				rows, err := db.Query(*target.(*string))
-				if err != nil {
-					t.Fatal(err)
-				}
-				testCheck(i, rows, t)
-				rows.Close()
-			} else { // use rows directly
-				testCheck(i, target.(*sql.Rows), t)
-			}
+		if j != len(data) {
+			t.Fatalf("invalid number of records %d - expected %d", j, len(data))
 		}
 	}
 
-	tableType := driver.RandomIdentifier("tt2_")
+	tableType := driver.RandomIdentifier("tableType_")
 	proc := driver.RandomIdentifier("procTableOut_")
 
+	// use same connection
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		t.Fatal()
+	}
+	defer conn.Close()
+
 	// create table type
-	if _, err := db.Exec(fmt.Sprintf("create type %s as table (i integer, x varchar(10))", tableType)); err != nil {
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf("create type %s as table (i integer, x varchar(10))", tableType)); err != nil {
 		t.Fatal(err)
 	}
 	// create procedure
-	if _, err := db.Exec(fmt.Sprintf(procTableOut, proc, tableType)); err != nil {
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf(procTableOut, proc, tableType)); err != nil {
 		t.Fatal(err)
 	}
 
-	tests := []struct {
-		name    string
-		legacy  bool
-		fct     func(db *sql.DB, proc driver.Identifier, legacy bool, targets []any, t *testing.T)
-		targets []any
-	}{
-		{"tableOutRef", true, testCall, []any{createString(), createString(), createString()}},
-		{"tableOutRows", false, testCall, []any{createRows(), createRows(), createRows()}},
+	var resultRows1, resultRows2, resultRows3 sql.Rows
+
+	// need to prepare to keep statement open
+	stmt, err := conn.PrepareContext(ctx, fmt.Sprintf("call %s(?, ?, ?, ?)", proc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(
+		1,
+		sql.Named("T1", sql.Out{Dest: &resultRows1}),
+		sql.Named("T2", sql.Out{Dest: &resultRows2}),
+		sql.Named("T3", sql.Out{Dest: &resultRows3}),
+	); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			connector := driver.NewTestConnector()
-			connector.SetLegacy(test.legacy)
-			db := sql.OpenDB(connector)
-			defer db.Close()
-			test.fct(db, proc, test.legacy, test.targets, t)
-		})
-	}
+	check(data[0], &resultRows1)
+	check(data[1], &resultRows2)
+	check(data[2], &resultRows3)
 }
 
 func testCallNoPrm(db *sql.DB, t *testing.T) {
@@ -227,52 +214,14 @@ language SQLSCRIPT as
 begin
 end
 `
-
-	testQueryRow := func(db *sql.DB, proc driver.Identifier, t *testing.T) {
-		var out string
-		// as the procedure does not have out parameters a try to scan any value should return the right sql error: sql.ErrNoRows.
-		if err := db.QueryRow(fmt.Sprintf("call %s", proc)).Scan(&out); err != sql.ErrNoRows {
-			t.Fatalf("error %s - expected %s", err, sql.ErrNoRows)
-		}
-	}
-
-	testQuery := func(db *sql.DB, proc driver.Identifier, t *testing.T) {
-		rows, err := db.Query(fmt.Sprintf("call %s", proc))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer rows.Close()
-
-		if rows.Next() { // shouldn't return any row
-			log.Fatal("number of rows needs to be 0")
-		}
-	}
-
-	testExec := func(db *sql.DB, proc driver.Identifier, t *testing.T) {
-		if _, err := db.Exec(fmt.Sprintf("call %s", proc)); err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	// create procedure
 	proc := driver.RandomIdentifier("procNoPrm_")
 	if _, err := db.Exec(fmt.Sprintf(procNoPrm, proc)); err != nil {
 		t.Fatal(err)
 	}
 
-	tests := []struct {
-		name string
-		fct  func(db *sql.DB, proc driver.Identifier, t *testing.T)
-	}{
-		{"QueryRow", testQueryRow},
-		{"Query", testQuery},
-		{"Exec", testExec},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.fct(db, proc, t)
-		})
+	if _, err := db.Exec(fmt.Sprintf("call %s", proc)); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -285,23 +234,23 @@ end
 `
 	const txt = "Hello World!"
 
-	createDBObjects := func() (driver.Identifier, driver.Identifier) {
+	createDBObjects := func(conn *sql.Conn, ctx context.Context) (driver.Identifier, driver.Identifier) {
 		// create table (stored procedure 'side effect')
 		table := driver.RandomIdentifier("tableNoOut_")
-		if _, err := db.Exec(fmt.Sprintf("create column table %s (x nvarchar(25))", table)); err != nil {
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf("create column table %s (x nvarchar(25))", table)); err != nil {
 			t.Fatal(err)
 		}
 		// create procedure
 		proc := driver.RandomIdentifier("procNoOut_")
-		if _, err := db.Exec(fmt.Sprintf(procNoOut, proc, table)); err != nil {
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf(procNoOut, proc, table)); err != nil {
 			t.Fatal(err)
 		}
 		return proc, table
 	}
 
-	checkTable := func(table driver.Identifier) {
+	checkTable := func(conn *sql.Conn, ctx context.Context, table driver.Identifier) {
 		var out string
-		if err := db.QueryRow(fmt.Sprintf("select * from %s", table)).Scan(&out); err != nil {
+		if err := conn.QueryRowContext(ctx, fmt.Sprintf("select * from %s", table)).Scan(&out); err != nil {
 			t.Fatal(err)
 		}
 		if out != txt {
@@ -309,58 +258,20 @@ end
 		}
 	}
 
-	testQueryRow := func(db *sql.DB, t *testing.T) {
-		proc, table := createDBObjects()
-
-		var out string
-		// as the procedure does not have out parameters a try to scan any value should return the right sql error: sql.ErrNoRows.
-		if err := db.QueryRow(fmt.Sprintf("call %s(?)", proc), txt).Scan(&out); err != sql.ErrNoRows {
-			t.Fatalf("error %s - expected %s", err, sql.ErrNoRows)
-		}
-
-		checkTable(table)
+	// use same connection
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		t.Fatal()
 	}
+	defer conn.Close()
 
-	testQuery := func(db *sql.DB, t *testing.T) {
-		proc, table := createDBObjects()
+	proc, table := createDBObjects(conn, ctx)
 
-		rows, err := db.Query(fmt.Sprintf("call %s(?)", proc), txt)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer rows.Close()
-
-		if rows.Next() { // shouldn't return any row
-			log.Fatal("number of rows needs to be 0")
-		}
-
-		checkTable(table)
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf("call %s(?)", proc), txt); err != nil {
+		t.Fatal(err)
 	}
-
-	testExec := func(db *sql.DB, t *testing.T) {
-		proc, table := createDBObjects()
-
-		if _, err := db.Exec(fmt.Sprintf("call %s(?)", proc), txt); err != nil {
-			t.Fatal(err)
-		}
-
-		checkTable(table)
-	}
-
-	tests := []struct {
-		name string
-		fct  func(db *sql.DB, t *testing.T)
-	}{
-		{"QueryRow", testQueryRow},
-		{"Query", testQuery},
-		{"Exec", testExec},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.fct(db, t)
-		})
-	}
+	checkTable(conn, ctx, table)
 }
 
 func TestCall(t *testing.T) {
@@ -375,12 +286,14 @@ func TestCall(t *testing.T) {
 		{"noOut", testCallNoOut},
 	}
 
-	db := sql.OpenDB(driver.NewTestConnector())
-	defer db.Close()
+	db := driver.DefaultTestDB()
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.fct(db, t)
-		})
+	for i := range tests {
+		func(i int) {
+			t.Run(tests[i].name, func(t *testing.T) {
+				t.Parallel() // run in parallel to speed up
+				tests[i].fct(db, t)
+			})
+		}(i)
 	}
 }

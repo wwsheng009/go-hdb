@@ -1,5 +1,4 @@
 //go:build !unit
-// +build !unit
 
 package driver
 
@@ -90,10 +89,12 @@ func TestConnector(t *testing.T) {
 		{"testRetryConnect", testRetryConnect},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-			test.fct(t)
-		})
+	for i := range tests {
+		func(i int) {
+			t.Run(tests[i].name, func(t *testing.T) {
+				t.Parallel()
+				tests[i].fct(t)
+			})
+		}(i)
 	}
 }

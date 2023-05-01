@@ -1,14 +1,8 @@
 package driver
 
 import (
-	"database/sql"
 	"database/sql/driver"
 )
-
-// NullTime represents an time.Time that may be null.
-//
-// Deprecated: Please use database/sql NullTime instead.
-type NullTime = sql.NullTime
 
 // deprecated driver interface methods
 func (*conn) Prepare(query string) (driver.Stmt, error)                     { panic("deprecated") }

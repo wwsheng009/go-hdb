@@ -1,5 +1,4 @@
 //go:build !unit
-// +build !unit
 
 package driver
 
@@ -46,12 +45,34 @@ func testCancelContext(db *sql.DB, t *testing.T) {
 	}
 }
 
+func testCheckCallStmt(db *sql.DB, t *testing.T) {
+	testData := []struct {
+		stmt  string
+		match bool
+	}{
+		{"call", false},
+		{"call ", true},
+		{"CALL ", true},
+		{"caller", false},
+		{"call function", true},
+		{" call function", true},
+		{"my call", false},
+	}
+
+	for _, data := range testData {
+		if match := callStmt.MatchString(data.stmt); match != data.match {
+			t.Fatalf("stmt %s regex match gives %t - expected %t", data.stmt, match, data.match)
+		}
+	}
+}
+
 func TestConnection(t *testing.T) {
 	tests := []struct {
 		name string
 		fct  func(db *sql.DB, t *testing.T)
 	}{
 		{"cancelContext", testCancelContext},
+		{"checkCallStmt", testCheckCallStmt},
 	}
 
 	db := DefaultTestDB()
